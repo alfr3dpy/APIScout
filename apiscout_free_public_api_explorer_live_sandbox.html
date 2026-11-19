@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APIScout — Free Public API Explorer & Live Sandbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slatex: {
+                            950: '#090d16',
+                            900: '#0f172a',
+                            850: '#131c31',
+                            800: '#1e293b',
+                            700: '#334155'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #090d16;
+            color: #e2e8f0;
+            background-image:
+                radial-gradient(circle at 10% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 40%);
+        }
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* JSON Syntax Renklendirme */
+        .json-key { color: #38bdf8; }
+        .json-string { color: #34d399; }
+        .json-number { color: #fbbf24; }
+        .json-boolean { color: #f472b6; }
+        .json-null { color: #94a3b8; font-style: italic; }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Bildirim (Toast) Kutusu -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- Üst Gezinme Çubuğu -->
+    <header class="sticky top-0 z-30 bg-slatex-950/90 backdrop-blur-md border-b border-slate-800">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
+                    <svg class="w-5 h-5 text-slate-950" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-base sm:text-lg text-white tracking-tight">APIScout</h1>
+                        <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                            Public APIs Sandbox
+                        </span>
+                    </div>
+                    <p id="header-subtitle" class="text-xs text-slate-400 hidden md:block">Free Public API Explorer & Live Sandbox — Zero auth keys, instant CORS testing</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Language Switcher Pill (EN / TR) -->
+                <div class="inline-flex items-center p-0.5 rounded-xl bg-slatex-900 border border-slate-800" role="group" aria-label="Language Switcher">
+                    <button type="button" id="lang-btn-en" onclick="setLanguage('en')" class="px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition cursor-pointer bg-emerald-500 text-slate-950">
+                        EN
+                    </button>
+                    <button type="button" id="lang-btn-tr" onclick="setLanguage('tr')" class="px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition cursor-pointer text-slate-400 hover:text-white">
+                        TR
+                    </button>
+                </div>
+
+                <button onclick="openAddApiModal()" class="px-3 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-xs sm:text-sm font-medium text-slate-200 transition flex items-center gap-1.5 cursor-pointer">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span id="btn-add-api-label">Add API</span>
+                </button>
+
+                <button onclick="activateCustomUrlMode()" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-semibold shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span id="btn-custom-url-desktop" class="hidden sm:inline">Test Custom URL</span>
+                    <span id="btn-custom-url-mobile" class="sm:hidden">Custom URL</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Top Search & Category Filter Bar -->
+    <section class="border-b border-slate-800/80 bg-slatex-900/60">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 space-y-3">
+            <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                <!-- Search Input -->
+                <div class="relative flex-1 max-w-xl">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input type="text" id="search-input" oninput="renderApiList()" placeholder="Search APIs by name, description, or endpoint (e.g. weather, crypto, github, json)..." class="w-full pl-10 pr-4 py-2 rounded-xl bg-slatex-950 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                </div>
+
+                <!-- Right Stats & Favorites Toggle -->
+                <div class="flex items-center justify-between md:justify-end gap-3">
+                    <span id="visible-count-badge" class="text-xs font-mono text-slate-400">15 free APIs available</span>
+
+                    <button id="fav-toggle-btn" onclick="toggleFavoritesOnly()" class="px-3.5 py-2 rounded-xl bg-slatex-950 border border-slate-800 hover:border-amber-500/40 text-xs sm:text-sm font-medium text-slate-300 transition flex items-center gap-2 cursor-pointer">
+                        <span id="fav-toggle-star" class="text-slate-500">★</span>
+                        <span id="fav-toggle-label">Favorites</span>
+                        <span id="fav-count-pill" class="px-1.5 py-0.2 rounded-md bg-slate-800 text-[11px] font-mono text-slate-300">0</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category Pills -->
+            <div id="category-pills" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Split Workspace (Left: API Catalog | Right: Live Test Studio) -->
+    <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- LEFT COLUMN: API Card List (5 Cols) -->
+        <section class="lg:col-span-5 space-y-3" aria-label="Free Public API List">
+            <div id="api-cards-container" class="space-y-3 max-h-[calc(100vh-225px)] overflow-y-auto pr-1">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <!-- Empty Result State -->
+            <div id="empty-list-state" class="hidden rounded-2xl bg-slatex-900 border border-slate-800 p-8 text-center space-y-3">
+                <p id="empty-title" class="text-sm font-semibold text-white">No matching APIs found</p>
+                <p id="empty-desc" class="text-xs text-slate-400">Try a different search keyword or reset your active filters.</p>
+                <button id="empty-reset-btn" onclick="resetAllFilters()" class="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-semibold hover:bg-emerald-400 transition">Reset Filters</button>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Interactive API Sandbox & Response Viewer (7 Cols) -->
+        <section id="playground-panel" class="lg:col-span-7 lg:sticky lg:top-20 rounded-2xl bg-slatex-900 border border-slate-800 shadow-2xl overflow-hidden flex flex-col">
+            
+            <!-- Selected API Header Band -->
+            <div class="px-5 py-4 bg-slatex-950/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span id="pg-category-badge" class="px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 text-[11px] font-medium">
+                            Weather
+                        </span>
+                        <span id="pg-auth-badge" class="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[11px] font-mono">
+                            Auth: None • CORS: Enabled
+                        </span>
+                    </div>
+                    <h2 id="pg-title" class="text-base sm:text-lg font-bold text-white mt-1 truncate">Open-Meteo Weather Forecast</h2>
+                    <p id="pg-desc" class="text-xs text-slate-400 mt-0.5 line-clamp-2">Real-time temperature, wind speed, and weather conditions for global coordinates without an API key.</p>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="pg-fav-btn" onclick="toggleCurrentApiFavorite()" title="Toggle Favorite" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition cursor-pointer">
+                        <span id="pg-fav-icon" class="text-base leading-none">☆</span>
+                    </button>
+                    <a id="pg-docs-link" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition flex items-center gap-1">
+                        <span id="pg-docs-label">Docs</span>
+                        <span class="text-slate-400">↗</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Request Bar (GET URL + Send Button) -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 bg-slatex-900 space-y-3">
+                <div class="flex flex-col sm:flex-row gap-2.5">
+                    <div class="flex items-center flex-1 rounded-xl bg-slatex-950 border border-slate-700 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 overflow-hidden">
+                        <span class="px-3 py-2.5 bg-emerald-500/10 text-emerald-400 font-mono text-xs font-bold border-r border-slate-800 select-none">
+                            GET
+                        </span>
+                        <input type="url" id="pg-url-input" oninput="handleUrlInputChange()" placeholder="https://api.example.com/v1/resource" class="w-full px-3 py-2.5 bg-transparent text-xs sm:text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none">
+                    </div>
+
+                    <button id="send-request-btn" onclick="executeGetRequest()" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-slate-950 font-semibold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2 shrink-0 cursor-pointer">
+                        <svg id="send-btn-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span id="send-btn-text">Send Request (GET)</span>
+                    </button>
+                </div>
+
+                <!-- Quick Presets / Hints -->
+                <div id="pg-hints-bar" class="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                    <span class="text-slate-500">Tip:</span>
+                    <span>Edit query parameters directly in the URL bar above and re-run the GET request.</span>
+                </div>
+            </div>
+
+            <!-- Response Telemetry Metrics (HTTP Status, Latency ms, Payload Size) -->
+            <div class="px-5 py-2.5 bg-slatex-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-1.5">
+                        <span id="lbl-status" class="text-slate-500">Status:</span>
+                        <span id="metric-status" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-semibold">Pending</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span id="lbl-latency" class="text-slate-500">Response Time:</span>
+                        <span id="metric-time" class="text-slate-200">— ms</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span id="lbl-size" class="text-slate-500">Payload Size:</span>
+                        <span id="metric-size" class="text-slate-200">— B</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="format-json-btn" onclick="formatJsonOutput()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-sans font-medium transition flex items-center gap-1 cursor-pointer">
+                        <span class="text-cyan-400 font-mono">{}</span>
+                        <span id="lbl-format-btn">Format</span>
+                    </button>
+
+                    <button onclick="copyActiveTabContent()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-sans font-medium transition flex items-center gap-1.5 cursor-pointer">
+                        <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        <span id="lbl-copy-btn">Copy JSON</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Output Tabs -->
+            <div class="px-5 pt-2 bg-slatex-950/60 border-b border-slate-800 flex items-center gap-1 overflow-x-auto no-scrollbar">
+                <button id="tab-btn-json" onclick="switchOutputTab('json')" data-tab="json" class="output-tab-btn px-3.5 py-2.5 text-xs font-semibold border-b-2 border-emerald-400 text-emerald-400 transition whitespace-nowrap cursor-pointer">
+                    Live JSON Response
+                </button>
+                <button id="tab-btn-fetch" onclick="switchOutputTab('fetch')" data-tab="fetch" class="output-tab-btn px-3.5 py-2.5 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition whitespace-nowrap cursor-pointer">
+                    JavaScript (fetch)
+                </button>
+                <button id="tab-btn-curl" onclick="switchOutputTab('curl')" data-tab="curl" class="output-tab-btn px-3.5 py-2.5 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition whitespace-nowrap cursor-pointer">
+                    cURL
+                </button>
+            </div>
+
+            <!-- Output Content Container -->
+            <div class="p-4 sm:p-5 bg-slatex-950 min-h-[340px] max-h-[520px] overflow-auto">
+                
+                <!-- Tab 1: Live JSON Response + Automatic Image Preview -->
+                <div id="tab-panel-json" class="space-y-4">
+                    <div id="image-preview-box" class="hidden rounded-xl bg-slatex-900 border border-slate-800 p-3 flex flex-col sm:flex-row items-center gap-4">
+                        <img id="image-preview-el" src="" alt="API Image Preview" class="w-28 h-28 object-cover rounded-lg border border-slate-700 bg-slate-950 shrink-0" onerror="document.getElementById('image-preview-box').classList.add('hidden')">
+                        <div class="min-w-0 flex-1 space-y-1">
+                            <span id="lbl-img-detected" class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                🖼️ Image Asset Detected in Payload
+                            </span>
+                            <p id="image-preview-url" class="text-xs font-mono text-slate-400 truncate"></p>
+                        </div>
+                    </div>
+
+                    <pre id="json-output-pre" class="text-xs sm:text-[13px] font-mono leading-relaxed text-slate-300 whitespace-pre-wrap break-words"></pre>
+                </div>
+
+                <!-- Tab 2: JavaScript (fetch) -->
+                <div id="tab-panel-fetch" class="hidden">
+                    <pre id="fetch-code-pre" class="text-xs sm:text-[13px] font-mono leading-relaxed text-cyan-200 whitespace-pre-wrap break-words"></pre>
+                </div>
+
+                <!-- Tab 3: cURL -->
+                <div id="tab-panel-curl" class="hidden">
+                    <pre id="curl-code-pre" class="text-xs sm:text-[13px] font-mono leading-relaxed text-amber-200 whitespace-pre-wrap break-words"></pre>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Add Custom API Modal -->
+    <div id="add-api-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onclick="closeAddApiModal()">
+        <div class="bg-slatex-900 border border-slate-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+            <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slatex-950/60">
+                <h3 id="modal-add-title" class="text-base font-bold text-white">Add Custom Public API</h3>
+                <button onclick="closeAddApiModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">✕</button>
+            </div>
+
+            <form id="add-api-form" onsubmit="handleAddCustomApi(event)" class="p-5 space-y-4">
+                <div>
+                    <label id="modal-lbl-name" class="block text-xs font-semibold text-slate-300 mb-1.5">API Name *</label>
+                    <input type="text" id="new-api-name" required placeholder="e.g. Open Brewery DB" class="w-full px-3.5 py-2 rounded-xl bg-slatex-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label id="modal-lbl-cat" class="block text-xs font-semibold text-slate-300 mb-1.5">Category *</label>
+                    <select id="new-api-category" class="w-full px-3.5 py-2 rounded-xl bg-slatex-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-emerald-500">
+                        <option value="Developer Tools">Developer Tools</option>
+                        <option value="Weather">Weather</option>
+                        <option value="Finance & Crypto">Finance & Crypto</option>
+                        <option value="Media & Fun">Media & Fun</option>
+                        <option value="Geo & Space">Geo & Space</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label id="modal-lbl-url" class="block text-xs font-semibold text-slate-300 mb-1.5">GET Endpoint URL *</label>
+                    <input type="url" id="new-api-url" required placeholder="https://api.example.com/v1/items" class="w-full px-3.5 py-2 rounded-xl bg-slatex-950 border border-slate-700 text-sm font-mono text-white focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label id="modal-lbl-desc" class="block text-xs font-semibold text-slate-300 mb-1.5">Short Description *</label>
+                    <textarea id="new-api-desc" rows="2" required placeholder="Briefly describe what data this endpoint returns..." class="w-full px-3.5 py-2 rounded-xl bg-slatex-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2">
+                    <button id="modal-btn-cancel" type="button" onclick="closeAddApiModal()" class="px-4 py-2 rounded-xl border border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition">Cancel</button>
+                    <button id="modal-btn-save" type="submit" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-semibold transition">Save & Run Test</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dual-Language Dictionary (EN / TR)
+        const I18N = {
+            en: {
+                subtitle: "Free Public API Explorer & Live Sandbox — Zero auth keys, instant CORS testing",
+                addApi: "Add API",
+                customUrlDesktop: "Test Custom URL",
+                customUrlMobile: "Custom URL",
+                searchPlaceholder: "Search APIs by name, description, or endpoint (e.g. weather, crypto, github, json)...",
+                availableCount: (n) => `${n} free APIs available`,
+                favorites: "Favorites",
+                emptyTitle: "No matching APIs found",
+                emptyDesc: "Try a different search keyword or reset your active filters.",
+                resetFilters: "Reset Filters",
+                authBadge: "Auth: None • CORS: Enabled",
+                docs: "Docs",
+                testAction: "Test →",
+                customBadge: "Custom",
+                sendRequest: "Send Request (GET)",
+                sendingRequest: "Sending...",
+                tipLabel: "Tip:",
+                tipText: "Edit query parameters directly in the URL bar above and re-run the GET request.",
+                quickPresets: "Quick Presets:",
+                customEndpointBadge: "Custom Endpoint",
+                customSandboxTitle: "Custom GET URL Sandbox",
+                customSandboxDesc: "Paste any CORS-enabled public GET API endpoint below to inspect latency, status codes, and formatted JSON.",
+                customReadyLabel: "Ready:",
+                customReadyText: "Paste a GET API URL above and click \"Send Request (GET)\".",
+                statusLabel: "Status:",
+                statusPending: "Pending",
+                statusLoading: "Loading...",
+                statusNetworkError: "Network / CORS Error",
+                latencyLabel: "Response Time:",
+                sizeLabel: "Payload Size:",
+                formatBtn: "Format",
+                copyJsonBtn: "Copy JSON",
+                copyCodeBtn: "Copy Code",
+                tabJson: "Live JSON Response",
+                tabFetch: "JavaScript (fetch)",
+                tabCurl: "cURL",
+                imgDetected: "🖼️ Image Asset Detected in Payload",
+                modalTitle: "Add Custom Public API",
+                modalNameLabel: "API Name *",
+                modalNamePlaceholder: "e.g. Open Brewery DB",
+                modalCatLabel: "Category *",
+                modalUrlLabel: "GET Endpoint URL *",
+                modalDescLabel: "Short Description *",
+                modalDescPlaceholder: "Briefly describe what data this endpoint returns...",
+                modalCancel: "Cancel",
+                modalSave: "Save & Run Test",
+                toastFavAdded: "Added to favorites ★",
+                toastFavRemoved: "Removed from favorites.",
+                toastSaveFirst: "Save this custom URL using 'Add API' first to favorite it.",
+                toastInvalidUrl: "Please enter a valid GET URL.",
+                toastCopied: "Copied to clipboard!",
+                toastFormatted: "JSON payload formatted.",
+                toastNotJson: "Current response is not valid JSON.",
+                toastCustomAdded: (name) => `"${name}" added to catalog and running live test.`,
+                fetchComment: "// Works directly in modern browsers and Node.js (v18+)",
+                errTitle: "The request could not be completed by the browser.",
+                errCauses: [
+                    "The target API does not allow cross-origin browser requests (CORS).",
+                    "The endpoint URL is malformed or temporarily unreachable.",
+                    "Your network connection was interrupted."
+                ],
+                categories: {
+                    "All": "All",
+                    "Weather": "Weather",
+                    "Finance & Crypto": "Finance & Crypto",
+                    "Developer Tools": "Developer Tools",
+                    "Geo & Space": "Geo & Space",
+                    "Media & Fun": "Media & Fun"
+                }
+            },
+            tr: {
+                subtitle: "Ücretsiz Public API Keşif & Canlı Test Paneli — Anahtarsız, anında CORS testi",
+                addApi: "API Ekle",
+                customUrlDesktop: "Özel URL Test Et",
+                customUrlMobile: "Özel URL",
+                searchPlaceholder: "API adı, açıklama veya uç nokta ara (örn. hava durumu, kripto, github, json)...",
+                availableCount: (n) => `${n} ücretsiz API mevcut`,
+                favorites: "Favoriler",
+                emptyTitle: "Eşleşen API bulunamadı",
+                emptyDesc: "Farklı bir arama kelimesi deneyebilir veya aktif filtreleri sıfırlayabilirsin.",
+                resetFilters: "Filtreleri Sıfırla",
+                authBadge: "Yetki: Yok • CORS: Açık",
+                docs: "Doküman",
+                testAction: "Test Et →",
+                customBadge: "Özel",
+                sendRequest: "İsteği Gönder (GET)",
+                sendingRequest: "Gönderiliyor...",
+                tipLabel: "İpucu:",
+                tipText: "Yukarıdaki URL çubuğundan sorgu parametrelerini doğrudan düzenleyip tekrar GET isteği atabilirsin.",
+                quickPresets: "Hızlı Örnekler:",
+                customEndpointBadge: "Özel Uç Nokta",
+                customSandboxTitle: "Özel GET URL Test Alanı",
+                customSandboxDesc: "Yanıt süresini, HTTP durum kodunu ve biçimlendirilmiş JSON çıktısını görmek için CORS destekli bir GET adresi yapıştır.",
+                customReadyLabel: "Hazır:",
+                customReadyText: "Yukarıya bir GET API adresi yapıştırıp \"İsteği Gönder (GET)\" butonuna tıkla.",
+                statusLabel: "Durum:",
+                statusPending: "Bekliyor",
+                statusLoading: "Yükleniyor...",
+                statusNetworkError: "Ağ / CORS Hatası",
+                latencyLabel: "Yanıt Süresi:",
+                sizeLabel: "Veri Boyutu:",
+                formatBtn: "Biçimlendir",
+                copyJsonBtn: "JSON Kopyala",
+                copyCodeBtn: "Kodu Kopyala",
+                tabJson: "Canlı JSON Yanıtı",
+                tabFetch: "JavaScript (fetch)",
+                tabCurl: "cURL",
+                imgDetected: "🖼️ Yanıtta Görsel Bağlantısı Algılandı",
+                modalTitle: "Yeni Public API Ekle",
+                modalNameLabel: "API Adı *",
+                modalNamePlaceholder: "örn. Open Brewery DB",
+                modalCatLabel: "Kategori *",
+                modalUrlLabel: "GET Uç Nokta Adresi (URL) *",
+                modalDescLabel: "Kısa Açıklama *",
+                modalDescPlaceholder: "Bu uç noktanın hangi veriyi döndürdüğünü kısaca yaz...",
+                modalCancel: "İptal",
+                modalSave: "Kaydet & Test Et",
+                toastFavAdded: "Favorilere eklendi ★",
+                toastFavRemoved: "Favorilerden çıkarıldı.",
+                toastSaveFirst: "Favorilere eklemek için önce 'API Ekle' ile kaydedin.",
+                toastInvalidUrl: "Lütfen geçerli bir GET adresi girin.",
+                toastCopied: "Panoya kopyalandı!",
+                toastFormatted: "JSON çıktısı biçimlendirildi.",
+                toastNotJson: "Mevcut yanıt geçerli bir JSON formatında değil.",
+                toastCustomAdded: (name) => `"${name}" kataloğa eklendi ve canlı test başlatıldı.`,
+                fetchComment: "// Modern tarayıcılarda ve Node.js (v18+) ortamında doğrudan çalışır",
+                errTitle: "İstek tarayıcı tarafından tamamlanamadı.",
+                errCauses: [
+                    "Hedef API tarayıcı üzerinden çapraz kaynak (CORS) isteklerine izin vermiyor olabilir.",
+                    "Uç nokta adresi hatalı veya geçici olarak erişilemiyor olabilir.",
+                    "İnternet bağlantınız kesilmiş olabilir."
+                ],
+                categories: {
+                    "All": "Tümü",
+                    "Weather": "Hava Durumu",
+                    "Finance & Crypto": "Finans & Kripto",
+                    "Developer Tools": "Geliştirici Araçları",
+                    "Geo & Space": "Coğrafya & Uzay",
+                    "Media & Fun": "Medya & Eğlence"
+                }
+            }
+        };
+
+        // Curated 15 Real, CORS-Friendly Public APIs with Bilingual Descriptions (EN & TR)
+        const DEFAULT_APIS = [
+            {
+                id: "open-meteo",
+                name: "Open-Meteo Weather Forecast",
+                category: "Weather",
+                description: {
+                    en: "Real-time temperature, wind speed, and weather conditions for global coordinates without an API key.",
+                    tr: "API anahtarı gerektirmeden dünya genelindeki koordinatlar için anlık sıcaklık, rüzgâr hızı ve hava durumu verileri."
+                },
+                url: "https://api.open-meteo.com/v1/forecast?latitude=40.77&longitude=30.40&current_weather=true",
+                docs: "https://open-meteo.com/en/docs",
+                presets: [
+                    { label: "Sakarya", url: "https://api.open-meteo.com/v1/forecast?latitude=40.77&longitude=30.40&current_weather=true" },
+                    { label: "London", url: "https://api.open-meteo.com/v1/forecast?latitude=51.50&longitude=-0.12&current_weather=true" },
+                    { label: "New York", url: "https://api.open-meteo.com/v1/forecast?latitude=40.71&longitude=-74.00&current_weather=true" }
+                ]
+            },
+            {
+                id: "frankfurter",
+                name: "Frankfurter FX Exchange Rates",
+                category: "Finance & Crypto",
+                description: {
+                    en: "Live foreign exchange reference rates published by the European Central Bank for major currencies.",
+                    tr: "Avrupa Merkez Bankası tarafından yayımlanan ana para birimleri için canlı döviz referans kurları."
+                },
+                url: "https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,TRY,JPY",
+                docs: "https://www.frankfurter.app/docs/",
+                presets: [
+                    { label: "USD Base", url: "https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,TRY,JPY" },
+                    { label: "EUR Base", url: "https://api.frankfurter.app/latest?from=EUR&to=USD,GBP,TRY" }
+                ]
+            },
+            {
+                id: "coingecko",
+                name: "CoinGecko Crypto Spot Prices",
+                category: "Finance & Crypto",
+                description: {
+                    en: "Real-time spot prices for Bitcoin, Ethereum, and Solana across USD and EUR markets.",
+                    tr: "Bitcoin, Ethereum ve Solana için USD ve EUR piyasalarındaki anlık spot fiyat verileri."
+                },
+                url: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd,eur",
+                docs: "https://docs.coingecko.com/",
+                presets: []
+            },
+            {
+                id: "github-repo",
+                name: "GitHub Public Repository Metadata",
+                category: "Developer Tools",
+                description: {
+                    en: "Fetches live star counts, forks, open issues, and primary language stats for any public GitHub repo.",
+                    tr: "Herkese açık herhangi bir GitHub deposunun canlı yıldız sayısını, fork, açık issue ve programlama dili istatistiklerini çeker."
+                },
+                url: "https://api.github.com/repos/public-apis/public-apis",
+                docs: "https://docs.github.com/en/rest",
+                presets: [
+                    { label: "public-apis", url: "https://api.github.com/repos/public-apis/public-apis" },
+                    { label: "ollama", url: "https://api.github.com/repos/ollama/ollama" },
+                    { label: "langflow", url: "https://api.github.com/repos/langflow-ai/langflow" }
+                ]
+            },
+            {
+                id: "jsonplaceholder",
+                name: "JSONPlaceholder Mock REST API",
+                category: "Developer Tools",
+                description: {
+                    en: "Reliable fake REST endpoints for frontend prototyping, pagination tests, and UI placeholders.",
+                    tr: "Arayüz prototipleme, sayfalama testleri ve sahte veri ihtiyaçları için güvenilir REST uç noktaları."
+                },
+                url: "https://jsonplaceholder.typicode.com/posts?_limit=3",
+                docs: "https://jsonplaceholder.typicode.com/",
+                presets: [
+                    { label: "3 Posts", url: "https://jsonplaceholder.typicode.com/posts?_limit=3" },
+                    { label: "Users", url: "https://jsonplaceholder.typicode.com/users?_limit=3" }
+                ]
+            },
+            {
+                id: "dummyjson-products",
+                name: "DummyJSON E-Commerce Catalog",
+                category: "Developer Tools",
+                description: {
+                    en: "Realistic e-commerce product JSON feed complete with pricing, stock counts, ratings, and thumbnails.",
+                    tr: "Fiyat, stok adedi, müşteri puanı ve küçük ürün görselleri içeren gerçekçi e-ticaret ürün JSON akışı."
+                },
+                url: "https://dummyjson.com/products?limit=3",
+                docs: "https://dummyjson.com/docs/products",
+                presets: []
+            },
+            {
+                id: "rest-countries",
+                name: "REST Countries Geographic Data",
+                category: "Geo & Space",
+                description: {
+                    en: "Comprehensive country metadata including capital, population, currencies, region, and flag assets.",
+                    tr: "Başkent, nüfus, para birimleri, bölge ve bayrak görsellerini içeren kapsamlı ülke veri servisi."
+                },
+                url: "https://restcountries.com/v3.1/name/turkey?fields=name,capital,population,region,currencies,flags",
+                docs: "https://restcountries.com/",
+                presets: [
+                    { label: "Türkiye", url: "https://restcountries.com/v3.1/name/turkey?fields=name,capital,population,region,currencies,flags" },
+                    { label: "Japan", url: "https://restcountries.com/v3.1/name/japan?fields=name,capital,population,region,currencies,flags" }
+                ]
+            },
+            {
+                id: "ipify",
+                name: "IPify Public IP Lookup",
+                category: "Geo & Space",
+                description: {
+                    en: "Ultra-fast endpoint returning the client's public IPv4/IPv6 network address in clean JSON.",
+                    tr: "İstemcinin genel IPv4/IPv6 ağ adresini sade JSON formatında döndüren ultra hızlı uç nokta."
+                },
+                url: "https://api.ipify.org?format=json",
+                docs: "https://www.ipify.org/",
+                presets: []
+            },
+            {
+                id: "spaceflight-news",
+                name: "Spaceflight News Feed",
+                category: "Geo & Space",
+                description: {
+                    en: "Latest spaceflight, NASA, and orbital launch articles with summaries and cover imagery.",
+                    tr: "NASA, uzay uçuşları ve yörünge fırlatmalarıyla ilgili özetler ve kapak görselleri içeren güncel haber akışı."
+                },
+                url: "https://api.spaceflightnewsapi.net/v4/articles/?limit=3",
+                docs: "https://api.spaceflightnewsapi.net/v4/docs/",
+                presets: []
+            },
+            {
+                id: "dog-ceo",
+                name: "Dog CEO Random Image API",
+                category: "Media & Fun",
+                description: {
+                    en: "Returns a random high-resolution dog photograph URL on every GET request.",
+                    tr: "Her GET isteğinde rastgele yüksek çözünürlüklü bir köpek fotoğrafı bağlantısı döndürür."
+                },
+                url: "https://dog.ceo/api/breeds/image/random",
+                docs: "https://dog.ceo/dog-api/",
+                presets: []
+            },
+            {
+                id: "pokeapi",
+                name: "PokéAPI Character Encyclopedia",
+                category: "Media & Fun",
+                description: {
+                    en: "Detailed Pokémon species stats, abilities, types, and official artwork sprites.",
+                    tr: "Pokémon türlerinin istatistiklerini, yeteneklerini, tiplerini ve resmi karakter görsellerini sunar."
+                },
+                url: "https://pokeapi.co/api/v2/pokemon/pikachu",
+                docs: "https://pokeapi.co/docs/v2",
+                presets: [
+                    { label: "Pikachu", url: "https://pokeapi.co/api/v2/pokemon/pikachu" },
+                    { label: "Charizard", url: "https://pokeapi.co/api/v2/pokemon/charizard" }
+                ]
+            },
+            {
+                id: "cat-facts",
+                name: "Cat Facts Random Trivia",
+                category: "Media & Fun",
+                description: {
+                    en: "Lightweight endpoint delivering bite-sized, random feline trivia and facts.",
+                    tr: "Kediler hakkında kısa, ilginç ve rastgele bilgiler sunan hafif JSON uç noktası."
+                },
+                url: "https://catfact.ninja/fact",
+                docs: "https://catfact.ninja/",
+                presets: []
+            },
+            {
+                id: "advice-slip",
+                name: "Advice Slip Generator",
+                category: "Media & Fun",
+                description: {
+                    en: "Generates random life, coding, and productivity advice slips in a compact JSON payload.",
+                    tr: "Kompakt bir JSON yanıtı içinde rastgele yaşam, yazılım ve üretkenlik tavsiyeleri üretir."
+                },
+                url: "https://api.adviceslip.com/advice",
+                docs: "https://api.adviceslip.com/",
+                presets: []
+            },
+            {
+                id: "dummyjson-quotes",
+                name: "DummyJSON Random Quotes",
+                category: "Media & Fun",
+                description: {
+                    en: "Curated inspirational and philosophical quotes attributed to authors and thinkers.",
+                    tr: "Yazarlar ve düşünürlere ait özenle seçilmiş ilham verici ve felsefi özlü sözler döndürür."
+                },
+                url: "https://dummyjson.com/quotes/random",
+                docs: "https://dummyjson.com/docs/quotes",
+                presets: []
+            },
+            {
+                id: "open-library",
+                name: "Open Library Book Search",
+                category: "Media & Fun",
+                description: {
+                    en: "Searches millions of cataloged books by title, author, ISBN, and first publish year.",
+                    tr: "Milyonlarca kataloglanmış kitap arasında başlık, yazar, ISBN ve ilk basım yılına göre arama yapar."
+                },
+                url: "https://openlibrary.org/search.json?q=dune&limit=3",
+                docs: "https://openlibrary.org/developers/api",
+                presets: [
+                    { label: "Dune", url: "https://openlibrary.org/search.json?q=dune&limit=3" },
+                    { label: "Clean Code", url: "https://openlibrary.org/search.json?q=clean+code&limit=3" }
+                ]
+            }
+        ];
+
+        const CATEGORIES = [
+            "All",
+            "Weather",
+            "Finance & Crypto",
+            "Developer Tools",
+            "Geo & Space",
+            "Media & Fun"
+        ];
+
+        // Application State
+        let currentLang = "en";
+        let apiCatalog = [];
+        let favorites = new Set();
+        let selectedCategory = "All";
+        let showFavoritesOnly = false;
+        let selectedApiId = "open-meteo";
+        let activeOutputTab = "json";
+        let lastRawResponseText = "";
+        let lastStatusState = "pending"; // "pending" | "loading" | "http" | "error"
+        let lastHttpStatusText = "";
+
+        // Helper for translations
+        function t(key) {
+            return I18N[currentLang][key] || I18N.en[key] || key;
+        }
+
+        function getCategoryLabel(catKey) {
+            return (I18N[currentLang].categories && I18N[currentLang].categories[catKey]) || catKey;
+        }
+
+        function getApiDescription(api) {
+            if (!api || !api.description) return "";
+            if (typeof api.description === "string") return api.description;
+            return api.description[currentLang] || api.description.en || "";
+        }
+
+        // Initialize LocalStorage
+        function initStorage() {
+            try {
+                const savedLang = localStorage.getItem("apiscout_lang_v1");
+                if (savedLang === "en" || savedLang === "tr") {
+                    currentLang = savedLang;
+                }
+
+                const savedFavs = JSON.parse(localStorage.getItem("apiscout_favs_v1") || "[]");
+                favorites = new Set(savedFavs);
+
+                const customApis = JSON.parse(localStorage.getItem("apiscout_custom_v1") || "[]");
+                apiCatalog = [...customApis, ...DEFAULT_APIS];
+            } catch (e) {
+                apiCatalog = [...DEFAULT_APIS];
+            }
+            updateFavCounter();
+        }
+
+        // Language Switcher Handler
+        function setLanguage(lang) {
+            if (lang !== "en" && lang !== "tr") return;
+            currentLang = lang;
+            localStorage.setItem("apiscout_lang_v1", lang);
+            document.documentElement.lang = lang;
+
+            // Update pill button styles
+            const btnEn = document.getElementById("lang-btn-en");
+            const btnTr = document.getElementById("lang-btn-tr");
+            if (lang === "en") {
+                btnEn.className = "px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition cursor-pointer bg-emerald-500 text-slate-950";
+                btnTr.className = "px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition cursor-pointer text-slate-400 hover:text-white";
+            } else {
+                btnTr.className = "px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition cursor-pointer bg-emerald-500 text-slate-950";
+                btnEn.className = "px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition cursor-pointer text-slate-400 hover:text-white";
+            }
+
+            applyStaticTranslations();
+            renderCategoryPills();
+            renderApiList();
+            syncInspectorLanguage();
+            updateCodeSnippets(document.getElementById("pg-url-input").value.trim());
+        }
+
+        // Apply all static UI texts in active language
+        function applyStaticTranslations() {
+            document.getElementById("header-subtitle").textContent = t("subtitle");
+            document.getElementById("btn-add-api-label").textContent = t("addApi");
+            document.getElementById("btn-custom-url-desktop").textContent = t("customUrlDesktop");
+            document.getElementById("btn-custom-url-mobile").textContent = t("customUrlMobile");
+            document.getElementById("search-input").placeholder = t("searchPlaceholder");
+            document.getElementById("fav-toggle-label").textContent = t("favorites");
+
+            document.getElementById("empty-title").textContent = t("emptyTitle");
+            document.getElementById("empty-desc").textContent = t("emptyDesc");
+            document.getElementById("empty-reset-btn").textContent = t("resetFilters");
+
+            document.getElementById("pg-auth-badge").textContent = t("authBadge");
+            document.getElementById("pg-docs-label").textContent = t("docs");
+            document.getElementById("send-btn-text").textContent = t("sendRequest");
+
+            document.getElementById("lbl-status").textContent = t("statusLabel");
+            document.getElementById("lbl-latency").textContent = t("latencyLabel");
+            document.getElementById("lbl-size").textContent = t("sizeLabel");
+            document.getElementById("lbl-format-btn").textContent = t("formatBtn");
+            updateCopyButtonLabel();
+
+            document.getElementById("tab-btn-json").textContent = t("tabJson");
+            document.getElementById("tab-btn-fetch").textContent = t("tabFetch");
+            document.getElementById("tab-btn-curl").textContent = t("tabCurl");
+            document.getElementById("lbl-img-detected").textContent = t("imgDetected");
+
+            // Status badge dynamic text
+            const statusBadge = document.getElementById("metric-status");
+            if (lastStatusState === "pending") statusBadge.textContent = t("statusPending");
+            else if (lastStatusState === "loading") statusBadge.textContent = t("statusLoading");
+            else if (lastStatusState === "error") statusBadge.textContent = t("statusNetworkError");
+
+            // Add Custom API Modal texts
+            document.getElementById("modal-add-title").textContent = t("modalTitle");
+            document.getElementById("modal-lbl-name").textContent = t("modalNameLabel");
+            document.getElementById("new-api-name").placeholder = t("modalNamePlaceholder");
+            document.getElementById("modal-lbl-cat").textContent = t("modalCatLabel");
+            document.getElementById("modal-lbl-url").textContent = t("modalUrlLabel");
+            document.getElementById("modal-lbl-desc").textContent = t("modalDescLabel");
+            document.getElementById("new-api-desc").placeholder = t("modalDescPlaceholder");
+            document.getElementById("modal-btn-cancel").textContent = t("modalCancel");
+            document.getElementById("modal-btn-save").textContent = t("modalSave");
+
+            // Modal category select options
+            const catSelect = document.getElementById("new-api-category");
+            Array.from(catSelect.options).forEach(opt => {
+                opt.textContent = getCategoryLabel(opt.value);
+            });
+        }
+
+        function updateCopyButtonLabel() {
+            const lbl = document.getElementById("lbl-copy-btn");
+            lbl.textContent = activeOutputTab === "json" ? t("copyJsonBtn") : t("copyCodeBtn");
+        }
+
+        // Sync currently active inspector metadata on language switch without losing response
+        function syncInspectorLanguage() {
+            const hintsBar = document.getElementById("pg-hints-bar");
+            if (!selectedApiId) {
+                document.getElementById("pg-category-badge").textContent = t("customEndpointBadge");
+                document.getElementById("pg-title").textContent = t("customSandboxTitle");
+                document.getElementById("pg-desc").textContent = t("customSandboxDesc");
+                hintsBar.innerHTML = `<span class="text-emerald-400">${t("customReadyLabel")}</span><span>${t("customReadyText")}</span>`;
+                return;
+            }
+
+            const api = apiCatalog.find(a => a.id === selectedApiId);
+            if (!api) return;
+
+            document.getElementById("pg-category-badge").textContent = getCategoryLabel(api.category);
+            document.getElementById("pg-title").textContent = api.name;
+            document.getElementById("pg-desc").textContent = getApiDescription(api);
+
+            if (api.presets && api.presets.length > 0) {
+                hintsBar.innerHTML = `<span class="text-slate-500">${t("quickPresets")}</span>` + api.presets.map(p => `
+                    <button type="button" onclick="applyPresetUrl('${p.url}')" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-mono text-[11px] transition cursor-pointer">
+                        ${escapeHTML(p.label)}
+                    </button>
+                `).join("");
+            } else {
+                hintsBar.innerHTML = `<span class="text-slate-500">${t("tipLabel")}</span><span>${t("tipText")}</span>`;
+            }
+        }
+
+        function saveFavorites() {
+            localStorage.setItem("apiscout_favs_v1", JSON.stringify([...favorites]));
+            updateFavCounter();
+        }
+
+        function updateFavCounter() {
+            document.getElementById("fav-count-pill").textContent = favorites.size;
+        }
+
+        // Toast Notification
+        function showToast(msg, type = "info") {
+            const container = document.getElementById("toast-container");
+            const el = document.createElement("div");
+            const styles = {
+                success: "bg-slatex-900 border-emerald-500/50 text-emerald-300",
+                error: "bg-slatex-900 border-rose-500/50 text-rose-300",
+                info: "bg-slatex-900 border-cyan-500/50 text-cyan-200"
+            };
+            el.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-2xl text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${styles[type] || styles.info}`;
+            el.textContent = msg;
+            container.appendChild(el);
+
+            requestAnimationFrame(() => el.classList.remove("translate-y-2", "opacity-0"));
+            setTimeout(() => {
+                el.classList.add("opacity-0", "translate-y-2");
+                setTimeout(() => el.remove(), 300);
+            }, 3200);
+        }
+
+        // Render Category Pills
+        function renderCategoryPills() {
+            const container = document.getElementById("category-pills");
+            container.innerHTML = CATEGORIES.map(cat => {
+                const isActive = selectedCategory === cat;
+                const count = cat === "All"
+                    ? apiCatalog.length
+                    : apiCatalog.filter(a => a.category === cat).length;
+
+                return `
+                    <button onclick="selectCategory('${cat}')" class="px-3.5 py-1.5 rounded-xl text-xs font-medium transition whitespace-nowrap cursor-pointer border ${
+                        isActive
+                            ? "bg-emerald-500 text-slate-950 border-emerald-500 font-semibold shadow-sm"
+                            : "bg-slatex-950 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700"
+                    }">
+                        ${escapeHTML(getCategoryLabel(cat))} <span class="opacity-75 font-mono">(${count})</span>
+                    </button>
+                `;
+            }).join("");
+        }
+
+        function selectCategory(cat) {
+            selectedCategory = cat;
+            renderCategoryPills();
+            renderApiList();
+        }
+
+        function toggleFavoritesOnly() {
+            showFavoritesOnly = !showFavoritesOnly;
+            const btn = document.getElementById("fav-toggle-btn");
+            const star = document.getElementById("fav-toggle-star");
+
+            if (showFavoritesOnly) {
+                btn.className = "px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-xs sm:text-sm font-semibold text-amber-300 transition flex items-center gap-2 cursor-pointer";
+                star.className = "text-amber-400";
+            } else {
+                btn.className = "px-3.5 py-2 rounded-xl bg-slatex-950 border border-slate-800 hover:border-amber-500/40 text-xs sm:text-sm font-medium text-slate-300 transition flex items-center gap-2 cursor-pointer";
+                star.className = "text-slate-500";
+            }
+            renderApiList();
+        }
+
+        function resetAllFilters() {
+            document.getElementById("search-input").value = "";
+            selectedCategory = "All";
+            if (showFavoritesOnly) toggleFavoritesOnly();
+            renderCategoryPills();
+            renderApiList();
+        }
+
+        // Render Left API List
+        function renderApiList() {
+            const container = document.getElementById("api-cards-container");
+            const emptyState = document.getElementById("empty-list-state");
+            const query = document.getElementById("search-input").value.toLowerCase().trim();
+
+            const filtered = apiCatalog.filter(api => {
+                if (selectedCategory !== "All" && api.category !== selectedCategory) return false;
+                if (showFavoritesOnly && !favorites.has(api.id)) return false;
+                if (query) {
+                    const descEn = typeof api.description === "string" ? api.description : (api.description.en || "");
+                    const descTr = typeof api.description === "string" ? api.description : (api.description.tr || "");
+                    const hay = `${api.name} ${descEn} ${descTr} ${api.category} ${getCategoryLabel(api.category)} ${api.url}`.toLowerCase();
+                    if (!hay.includes(query)) return false;
+                }
+                return true;
+            });
+
+            document.getElementById("visible-count-badge").textContent = t("availableCount")(filtered.length);
+
+            if (filtered.length === 0) {
+                container.innerHTML = "";
+                emptyState.classList.remove("hidden");
+                return;
+            }
+            emptyState.classList.add("hidden");
+
+            container.innerHTML = filtered.map(api => {
+                const isSelected = api.id === selectedApiId;
+                const isFav = favorites.has(api.id);
+
+                return `
+                    <div onclick="selectApi('${api.id}')" class="group rounded-2xl p-4 border transition-all cursor-pointer ${
+                        isSelected
+                            ? "bg-slatex-850 border-emerald-500/70 shadow-lg shadow-emerald-500/5"
+                            : "bg-slatex-900/90 border-slate-800 hover:border-slate-700 hover:bg-slatex-850/60"
+                    }">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                                        ${escapeHTML(getCategoryLabel(api.category))}
+                                    </span>
+                                    ${api.isCustom ? `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">${t("customBadge")}</span>` : ""}
+                                </div>
+                                <h3 class="text-sm sm:text-base font-bold text-white mt-1.5 group-hover:text-emerald-300 transition truncate">
+                                    ${escapeHTML(api.name)}
+                                </h3>
+                            </div>
+
+                            <button type="button" onclick="event.stopPropagation(); toggleFavoriteById('${api.id}')" title="Toggle Favorite" class="p-1.5 rounded-lg hover:bg-slate-800 text-base leading-none transition shrink-0 ${isFav ? 'text-amber-400' : 'text-slate-600 hover:text-slate-300'}">
+                                ${isFav ? "★" : "☆"}
+                            </button>
+                        </div>
+
+                        <p class="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
+                            ${escapeHTML(getApiDescription(api))}
+                        </p>
+
+                        <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                            <code class="text-[11px] font-mono text-slate-500 truncate">${escapeHTML(api.url)}</code>
+                            <span class="text-[11px] font-semibold text-emerald-400 shrink-0 group-hover:translate-x-0.5 transition-transform">
+                                ${t("testAction")}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // Select API and Populate Sandbox
+        function selectApi(apiId, autoRun = true) {
+            const api = apiCatalog.find(a => a.id === apiId);
+            if (!api) return;
+
+            selectedApiId = api.id;
+            document.getElementById("pg-url-input").value = api.url;
+
+            const docsLink = document.getElementById("pg-docs-link");
+            if (api.docs) {
+                docsLink.href = api.docs;
+                docsLink.classList.remove("hidden");
+            } else {
+                docsLink.classList.add("hidden");
+            }
+
+            syncInspectorLanguage();
+            updatePlaygroundFavoriteIcon();
+            updateCodeSnippets(api.url);
+            renderApiList();
+
+            if (autoRun) {
+                executeGetRequest();
+            }
+
+            if (window.innerWidth < 1024) {
+                document.getElementById("playground-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
+
+        function applyPresetUrl(url) {
+            document.getElementById("pg-url-input").value = url;
+            updateCodeSnippets(url);
+            executeGetRequest();
+        }
+
+        // Custom URL Test Mode
+        function activateCustomUrlMode() {
+            selectedApiId = null;
+            document.getElementById("pg-docs-link").classList.add("hidden");
+            syncInspectorLanguage();
+
+            const input = document.getElementById("pg-url-input");
+            input.focus();
+            input.select();
+            renderApiList();
+        }
+
+        function handleUrlInputChange() {
+            const currentUrl = document.getElementById("pg-url-input").value.trim();
+            updateCodeSnippets(currentUrl);
+        }
+
+        // Favorites Logic
+        function toggleFavoriteById(id) {
+            if (favorites.has(id)) {
+                favorites.delete(id);
+                showToast(t("toastFavRemoved"), "info");
+            } else {
+                favorites.add(id);
+                showToast(t("toastFavAdded"), "success");
+            }
+            saveFavorites();
+            updatePlaygroundFavoriteIcon();
+            renderApiList();
+        }
+
+        function toggleCurrentApiFavorite() {
+            if (!selectedApiId) {
+                showToast(t("toastSaveFirst"), "info");
+                return;
+            }
+            toggleFavoriteById(selectedApiId);
+        }
+
+        function updatePlaygroundFavoriteIcon() {
+            const icon = document.getElementById("pg-fav-icon");
+            const btn = document.getElementById("pg-fav-btn");
+            if (!selectedApiId) {
+                btn.classList.add("opacity-40");
+                icon.textContent = "☆";
+                return;
+            }
+            btn.classList.remove("opacity-40");
+            const isFav = favorites.has(selectedApiId);
+            icon.textContent = isFav ? "★" : "☆";
+            icon.className = isFav ? "text-base leading-none text-amber-400" : "text-base leading-none text-slate-400";
+        }
+
+        // Dynamic Code Snippet Generator (JavaScript fetch & cURL)
+        function updateCodeSnippets(url) {
+            const safeUrl = url || "https://api.example.com/v1/resource";
+
+            const fetchSnippet = `${t("fetchComment")}
+async function fetchData() {
+  try {
+    const response = await fetch("${safeUrl}", {
+      method: "GET",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(\`HTTP Error: \${response.status}\`);
+    }
+
+    const data = await response.json();
+    console.log("API Response:", data);
+    return data;
+  } catch (error) {
+    console.error("Request failed:", error);
+  }
+}
+
+fetchData();`;
+
+            const curlSnippet = `curl -X GET "${safeUrl}" \\
+  -H "Accept: application/json"`;
+
+            document.getElementById("fetch-code-pre").textContent = fetchSnippet;
+            document.getElementById("curl-code-pre").textContent = curlSnippet;
+        }
+
+        // Format / Pretty-Print JSON Output
+        function formatJsonOutput() {
+            if (!lastRawResponseText) return;
+            try {
+                const parsed = JSON.parse(lastRawResponseText);
+                const pretty = JSON.stringify(parsed, null, 2);
+                lastRawResponseText = pretty;
+                document.getElementById("json-output-pre").innerHTML = syntaxHighlightJson(pretty);
+                switchOutputTab("json");
+                showToast(t("toastFormatted"), "success");
+            } catch (e) {
+                showToast(t("toastNotJson"), "error");
+            }
+        }
+
+        // Execute Live GET Request
+        async function executeGetRequest() {
+            const urlInput = document.getElementById("pg-url-input");
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                showToast(t("toastInvalidUrl"), "error");
+                urlInput.focus();
+                return;
+            }
+
+            const btn = document.getElementById("send-request-btn");
+            const btnText = document.getElementById("send-btn-text");
+            const statusBadge = document.getElementById("metric-status");
+            const timeEl = document.getElementById("metric-time");
+            const sizeEl = document.getElementById("metric-size");
+            const jsonPre = document.getElementById("json-output-pre");
+            const imgBox = document.getElementById("image-preview-box");
+
+            btn.disabled = true;
+            btnText.textContent = t("sendingRequest");
+            lastStatusState = "loading";
+            statusBadge.textContent = t("statusLoading");
+            statusBadge.className = "px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-semibold";
+            imgBox.classList.add("hidden");
+
+            const startTime = performance.now();
+
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: { "Accept": "application/json" }
+                });
+
+                const endTime = performance.now();
+                const durationMs = Math.round(endTime - startTime);
+                const rawText = await response.text();
+                const byteSize = new Blob([rawText]).size;
+
+                const formattedSize = byteSize >= 1024
+                    ? `${(byteSize / 1024).toFixed(2)} KB`
+                    : `${byteSize} B`;
+
+                timeEl.textContent = `${durationMs} ms`;
+                sizeEl.textContent = formattedSize;
+
+                lastStatusState = "http";
+                if (response.ok) {
+                    lastHttpStatusText = `${response.status} ${response.statusText || "OK"}`;
+                    statusBadge.textContent = lastHttpStatusText;
+                    statusBadge.className = "px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold";
+                } else {
+                    lastHttpStatusText = `${response.status} ${response.statusText || "Error"}`;
+                    statusBadge.textContent = lastHttpStatusText;
+                    statusBadge.className = "px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-semibold";
+                }
+
+                try {
+                    const parsedJson = JSON.parse(rawText);
+                    const prettyJson = JSON.stringify(parsedJson, null, 2);
+                    lastRawResponseText = prettyJson;
+                    jsonPre.innerHTML = syntaxHighlightJson(prettyJson);
+
+                    const detectedImgUrl = findImageUrlInObject(parsedJson);
+                    if (detectedImgUrl) {
+                        document.getElementById("image-preview-el").src = detectedImgUrl;
+                        document.getElementById("image-preview-url").textContent = detectedImgUrl;
+                        imgBox.classList.remove("hidden");
+                    }
+                } catch (parseErr) {
+                    lastRawResponseText = rawText;
+                    jsonPre.textContent = rawText;
+                }
+
+                updateCodeSnippets(url);
+            } catch (networkErr) {
+                const endTime = performance.now();
+                timeEl.textContent = `${Math.round(endTime - startTime)} ms`;
+                sizeEl.textContent = "0 B";
+                lastStatusState = "error";
+                statusBadge.textContent = t("statusNetworkError");
+                statusBadge.className = "px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/30 font-semibold";
+
+                const errorMessage = {
+                    error: t("errTitle"),
+                    possible_causes: t("errCauses"),
+                    details: networkErr.message
+                };
+                lastRawResponseText = JSON.stringify(errorMessage, null, 2);
+                jsonPre.innerHTML = syntaxHighlightJson(lastRawResponseText);
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = t("sendRequest");
+            }
+        }
+
+        // Detect Image URLs inside JSON payload
+        function findImageUrlInObject(obj, depth = 0) {
+            if (!obj || depth > 4) return null;
+            if (typeof obj === "string") {
+                if (/^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(obj)) {
+                    return obj;
+                }
+                return null;
+            }
+            if (Array.isArray(obj)) {
+                for (let i = 0; i < Math.min(obj.length, 5); i++) {
+                    const found = findImageUrlInObject(obj[i], depth + 1);
+                    if (found) return found;
+                }
+            } else if (typeof obj === "object") {
+                for (const key of Object.keys(obj)) {
+                    const found = findImageUrlInObject(obj[key], depth + 1);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        // JSON Syntax Highlighting
+        function syntaxHighlightJson(jsonStr) {
+            const escaped = jsonStr
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
+            return escaped.replace(
+                /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+                (match) => {
+                    let cls = "json-number";
+                    if (/^"/.test(match)) {
+                        cls = /:$/.test(match) ? "json-key" : "json-string";
+                    } else if (/true|false/.test(match)) {
+                        cls = "json-boolean";
+                    } else if (/null/.test(match)) {
+                        cls = "json-null";
+                    }
+                    return `<span class="${cls}">${match}</span>`;
+                }
+            );
+        }
+
+        // Çıktı Sekmeleri Geçişi
+        function switchOutputTab(tabName) {
+            activeOutputTab = tabName;
+            document.querySelectorAll(".output-tab-btn").forEach(btn => {
+                if (btn.dataset.tab === tabName) {
+                    btn.className = "output-tab-btn px-3.5 py-2.5 text-xs font-semibold border-b-2 border-emerald-400 text-emerald-400 transition whitespace-nowrap cursor-pointer";
+                } else {
+                    btn.className = "output-tab-btn px-3.5 py-2.5 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition whitespace-nowrap cursor-pointer";
+                }
+            });
+
+            document.getElementById("tab-panel-json").classList.toggle("hidden", tabName !== "json");
+            document.getElementById("tab-panel-fetch").classList.toggle("hidden", tabName !== "fetch");
+            document.getElementById("tab-panel-curl").classList.toggle("hidden", tabName !== "curl");
+            updateCopyButtonLabel();
+        }
+
+        // Copy Active Tab Content to Clipboard
+        function copyActiveTabContent() {
+            let textToCopy = "";
+            if (activeOutputTab === "json") textToCopy = lastRawResponseText;
+            else if (activeOutputTab === "fetch") textToCopy = document.getElementById("fetch-code-pre").textContent;
+            else if (activeOutputTab === "curl") textToCopy = document.getElementById("curl-code-pre").textContent;
+
+            if (!textToCopy) return;
+
+            const textarea = document.createElement("textarea");
+            textarea.value = textToCopy;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+
+            showToast(t("toastCopied"), "success");
+        }
+
+        // Copy Active Tab Content to Clipboard
+        function copyActiveTabContent() {
+            let textToCopy = "";
+            if (activeOutputTab === "json") textToCopy = lastRawResponseText;
+            else if (activeOutputTab === "fetch") textToCopy = document.getElementById("fetch-code-pre").textContent;
+            else if (activeOutputTab === "curl") textToCopy = document.getElementById("curl-code-pre").textContent;
+
+            if (!textToCopy) return;
+
+            const textarea = document.createElement("textarea");
+            textarea.value = textToCopy;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+
+            showToast("Copied to clipboard!", "success");
+        }
+
+        // Add Custom API Modal Handlers
+        function openAddApiModal() {
+            const modal = document.getElementById("add-api-modal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function closeAddApiModal() {
+            const modal = document.getElementById("add-api-modal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function handleAddCustomApi(event) {
+            event.preventDefault();
+            const name = document.getElementById("new-api-name").value.trim();
+            const category = document.getElementById("new-api-category").value;
+            const url = document.getElementById("new-api-url").value.trim();
+            const description = document.getElementById("new-api-desc").value.trim();
+
+            const newApi = {
+                id: "custom-" + Date.now(),
+                name,
+                category,
+                description,
+                url,
+                docs: "",
+                presets: [],
+                isCustom: true
+            };
+
+            try {
+                const existingCustom = JSON.parse(localStorage.getItem("apiscout_custom_v1") || "[]");
+                existingCustom.unshift(newApi);
+                localStorage.setItem("apiscout_custom_v1", JSON.stringify(existingCustom));
+            } catch (e) {}
+
+            apiCatalog.unshift(newApi);
+            document.getElementById("add-api-form").reset();
+            closeAddApiModal();
+            renderCategoryPills();
+            selectApi(newApi.id, true);
+            showToast(t("toastCustomAdded")(name), "success");
+        }
+
+        function escapeHTML(str) {
+            return String(str).replace(/[&<>'"]/g, tag => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                "'": "&#39;",
+                '"': "&quot;"
+            }[tag] || tag));
+        }
+
+        // Başlangıç
+        window.addEventListener("DOMContentLoaded", () => {
+            initStorage();
+            setLanguage(currentLang);
+            selectApi("open-meteo", true);
+        });
+    </script>
+</body>
+</html>
