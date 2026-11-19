@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APIScout — Free Public API Explorer &amp; Live Sandbox</title>
+  <style>
+    :root {
+      --bg-body: #090d16;
+      --bg-panel: #111827;
+      --bg-card: #161f33;
+      --bg-input: #0b1120;
+      --border: #1e293b;
+      --border-hover: #38bdf8;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.18);
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --purple: #a855f7;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: #fff;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+    }
+
+    .lang-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .lang-btn.active {
+      background: var(--accent);
+      color: #090d16;
+    }
+
+    .btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      border-color: var(--border-hover);
+      background: #1e293b;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border: none;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+
+    /* Filter Bar */
+    .toolbar {
+      padding: 14px 24px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 240px;
+      max-width: 380px;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 9px 14px 9px 36px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-box span {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .categories {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cat-pill {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .cat-pill.active, .cat-pill:hover {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Main Workspace */
+    .workspace {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 960px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Catalog */
+    .catalog {
+      border-right: 1px solid var(--border);
+      padding: 16px;
+      overflow-y: auto;
+      max-height: calc(100vh - 132px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    @media (max-width: 960px) {
+      .catalog {
+        max-height: 420px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+    }
+
+    .api-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .api-card:hover {
+      border-color: #475569;
+      transform: translateY(-1px);
+    }
+
+    .api-card.selected {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.08);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .api-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .api-title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: #fff;
+    }
+
+    .fav-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 2px;
+    }
+
+    .fav-btn.active {
+      color: var(--amber);
+    }
+
+    .api-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .api-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-weight: 600;
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text-muted);
+    }
+
+    .badge.cors { background: rgba(16, 185, 129, 0.14); color: var(--green); }
+    .badge.auth { background: rgba(56, 189, 248, 0.14); color: var(--accent); }
+
+    /* Right Sandbox */
+    .sandbox {
+      padding: 20px 24px;
+      overflow-y: auto;
+      max-height: calc(100vh - 132px);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    @media (max-width: 960px) {
+      .sandbox { max-height: none; }
+    }
+
+    .sandbox-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .sandbox-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .sandbox-header p {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .request-bar {
+      display: flex;
+      gap: 8px;
+      background: var(--bg-panel);
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .method-tag {
+      background: rgba(16, 185, 129, 0.16);
+      color: var(--green);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 8px 12px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+    }
+
+    .url-input {
+      flex: 1;
+      min-width: 220px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      padding: 8px 12px;
+      border-radius: 7px;
+      outline: none;
+    }
+
+    .url-input:focus { border-color: var(--accent); }
+
+    /* Telemetry Strip */
+    .telemetry {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .metric {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .metric strong { color: var(--text-main); font-family: var(--font-mono); }
+    .status-ok { color: var(--green) !important; }
+    .status-err { color: var(--red) !important; }
+
+    /* Output Grid */
+    .output-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 1200px) {
+      .output-grid { grid-template-columns: 1fr; }
+    }
+
+    .panel-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .panel-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .mini-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-size: 0.73rem;
+      padding: 4px 9px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .mini-btn:hover { border-color: var(--accent); }
+
+    pre {
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 0.79rem;
+      color: #e2e8f0;
+      overflow: auto;
+      max-height: 410px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .image-preview {
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: #060911;
+    }
+
+    .image-preview img {
+      max-height: 200px;
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .code-tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .code-tab {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .code-tab.active {
+      background: var(--bg-card);
+      border-color: var(--border);
+      color: var(--accent);
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      display: none;
+      place-items: center;
+      z-index: 60;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open { display: grid; }
+
+    .modal {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 460px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal h3 { font-size: 1.05rem; }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .form-group input, .form-group select {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 7px;
+      font-size: 0.84rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1e293b;
+      border: 1px solid var(--accent);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 80;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-logo">AS</div>
+      <div>
+        <h1>APIScout</h1>
+        <p data-i18n="subtitle">Free Public API Explorer &amp; Live Browser Sandbox</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="lang-switch" role="group" aria-label="Language Switch">
+        <button class="lang-btn active" id="langEnBtn" onclick="setLanguage('en')">EN</button>
+        <button class="lang-btn" id="langTrBtn" onclick="setLanguage('tr')">TR</button>
+      </div>
+      <button class="btn" id="favFilterBtn" onclick="toggleFavFilter()">
+        <span>★</span> <span data-i18n="favorites">Favorites</span> (<span id="favCount">0</span>)
+      </button>
+      <button class="btn btn-primary" onclick="openModal()">
+        <span>+</span> <span data-i18n="addCustom">Add Custom API</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <span>⌕</span>
+      <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="Search APIs, endpoints, or categories..." oninput="renderCatalog()" />
+    </div>
+    <div class="categories" id="categoryBar"></div>
+  </div>
+
+  <main class="workspace">
+    <aside class="catalog" id="catalogList"></aside>
+
+    <section class="sandbox">
+      <div class="sandbox-header">
+        <div>
+          <h2 id="activeTitle">Open-Meteo Weather</h2>
+          <p id="activeDesc">Real-time weather forecast without an API key.</p>
+        </div>
+        <a id="docsLink" href="https://open-meteo.com/" target="_blank" rel="noopener" class="btn" data-i18n="officialDocs">Official Docs ↗</a>
+      </div>
+
+      <div class="request-bar">
+        <span class="method-tag">GET</span>
+        <input type="text" id="endpointInput" class="url-input" oninput="updateCodeSnippets()" />
+        <button class="btn btn-primary" id="sendBtn" onclick="sendRequest()" data-i18n="sendRequest">Send Request</button>
+      </div>
+
+      <div class="telemetry">
+        <div class="metric"><span data-i18n="statusLabel">Status:</span> <strong id="metricStatus">—</strong></div>
+        <div class="metric"><span data-i18n="latencyLabel">Latency:</span> <strong id="metricLatency">—</strong></div>
+        <div class="metric"><span data-i18n="sizeLabel">Size:</span> <strong id="metricSize">—</strong></div>
+        <div class="metric"><span data-i18n="authLabel">Auth:</span> <strong id="metricAuth">No Key</strong></div>
+      </div>
+
+      <div class="output-grid">
+        <div class="panel-box">
+          <div class="panel-head">
+            <span data-i18n="liveResponse">LIVE JSON RESPONSE</span>
+            <div class="panel-actions">
+              <button class="mini-btn" onclick="formatJson()" data-i18n="formatBtn">Format</button>
+              <button class="mini-btn" onclick="copyText('responseOutput')" data-i18n="copyBtn">Copy</button>
+            </div>
+          </div>
+          <div class="image-preview" id="imagePreview">
+            <img id="previewImg" src="" alt="API Media Preview" />
+          </div>
+          <pre id="responseOutput">// Click "Send Request" to inspect live API output...</pre>
+        </div>
+
+        <div class="panel-box">
+          <div class="panel-head">
+            <div class="code-tabs">
+              <button class="code-tab active" id="tabFetch" onclick="switchCodeTab('fetch')">JavaScript fetch()</button>
+              <button class="code-tab" id="tabCurl" onclick="switchCodeTab('curl')">cURL</button>
+            </div>
+            <button class="mini-btn" onclick="copyText('codeOutput')" data-i18n="copyBtn">Copy</button>
+          </div>
+          <pre id="codeOutput"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Add Custom API Modal -->
+  <div class="modal-backdrop" id="customModal">
+    <div class="modal">
+      <h3 data-i18n="modalTitle">Add Custom Public API</h3>
+      <div class="form-group">
+        <label data-i18n="fieldName">API Name</label>
+        <input type="text" id="customName" placeholder="e.g., My Custom Endpoint" />
+      </div>
+      <div class="form-group">
+        <label data-i18n="fieldCategory">Category</label>
+        <select id="customCategory">
+          <option value="dev">Developer Tools</option>
+          <option value="finance">Finance &amp; Crypto</option>
+          <option value="weather">Weather</option>
+          <option value="geo">Geo &amp; Space</option>
+          <option value="fun">Media &amp; Fun</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label data-i18n="fieldUrl">GET Endpoint URL</label>
+        <input type="url" id="customUrl" placeholder="https://api.example.com/v1/data" />
+      </div>
+      <div class="form-group">
+        <label data-i18n="fieldDesc">Short Description</label>
+        <input type="text" id="customDesc" placeholder="Returns JSON items..." />
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()" data-i18n="cancelBtn">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCustomApi()" data-i18n="saveBtn">Save API</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const I18N = {
+      en: {
+        subtitle: "Free Public API Explorer & Live Browser Sandbox",
+        favorites: "Favorites",
+        addCustom: "Add Custom API",
+        searchPlaceholder: "Search APIs, endpoints, or categories...",
+        officialDocs: "Official Docs ↗",
+        sendRequest: "Send Request",
+        sending: "Sending...",
+        statusLabel: "Status:",
+        latencyLabel: "Latency:",
+        sizeLabel: "Size:",
+        authLabel: "Auth:",
+        noKey: "No Key",
+        corsYes: "CORS: Yes",
+        liveResponse: "LIVE JSON RESPONSE",
+        formatBtn: "Format",
+        copyBtn: "Copy",
+        modalTitle: "Add Custom Public API",
+        fieldName: "API Name",
+        fieldCategory: "Category",
+        fieldUrl: "GET Endpoint URL",
+        fieldDesc: "Short Description",
+        cancelBtn: "Cancel",
+        saveBtn: "Save API",
+        copiedToast: "Copied to clipboard!",
+        savedToast: "Custom API added to catalog!",
+        invalidForm: "Please enter a valid name and HTTPS URL.",
+        emptyCatalog: "No matching APIs found.",
+        readyPrompt: '// Click "Send Request" to inspect live API output...',
+        categories: {
+          all: "All",
+          weather: "Weather",
+          finance: "Finance & Crypto",
+          dev: "Developer Tools",
+          geo: "Geo & Space",
+          fun: "Media & Fun"
+        }
+      },
+      tr: {
+        subtitle: "Ücretsiz Açık API Keşif ve Canlı Tarayıcı Test Paneli",
+        favorites: "Favoriler",
+        addCustom: "Yeni API Ekle",
+        searchPlaceholder: "API, uç nokta veya kategori ara...",
+        officialDocs: "Resmi Doküman ↗",
+        sendRequest: "İsteği Gönder",
+        sending: "Gönderiliyor...",
+        statusLabel: "Durum:",
+        latencyLabel: "Gecikme:",
+        sizeLabel: "Boyut:",
+        authLabel: "Yetki:",
+        noKey: "Anahtarsız",
+        corsYes: "CORS: Açık",
+        liveResponse: "CANLI JSON YANITI",
+        formatBtn: "Biçimlendir",
+        copyBtn: "Kopyala",
+        modalTitle: "Özel Ücretsiz API Ekle",
+        fieldName: "API Adı",
+        fieldCategory: "Kategori",
+        fieldUrl: "GET Uç Nokta URL'si",
+        fieldDesc: "Kısa Açıklama",
+        cancelBtn: "İptal",
+        saveBtn: "API'yi Kaydet",
+        copiedToast: "Panoya kopyalandı!",
+        savedToast: "Özel API kataloğa eklendi!",
+        invalidForm: "Lütfen geçerli bir ad ve HTTPS adresi girin.",
+        emptyCatalog: "Eşleşen API bulunamadı.",
+        readyPrompt: '// Canlı API çıktısını görmek için "İsteği Gönder" butonuna tıklayın...',
+        categories: {
+          all: "Tümü",
+          weather: "Hava Durumu",
+          finance: "Finans & Kripto",
+          dev: "Geliştirici Araçları",
+          geo: "Coğrafya & Uzay",
+          fun: "Medya & Eğlence"
+        }
+      }
+    };
+
+    const DEFAULT_APIS = [
+      {
+        id: "open-meteo",
+        name: "Open-Meteo Weather",
+        category: "weather",
+        url: "https://api.open-meteo.com/v1/forecast?latitude=40.7667&longitude=30.4000&current_weather=true",
+        docs: "https://open-meteo.com/",
+        desc: {
+          en: "High-resolution live weather forecast by coordinates without an API key.",
+          tr: "API anahtarı gerektirmeden koordinata göre anlık hava durumu tahmini."
+        }
+      },
+      {
+        id: "frankfurter",
+        name: "Frankfurter FX Rates",
+        category: "finance",
+        url: "https://api.frankfurter.app/latest?from=USD&to=TRY,EUR,GBP",
+        docs: "https://www.frankfurter.app/docs/",
+        desc: {
+          en: "European Central Bank reference foreign exchange rates updated daily.",
+          tr: "Avrupa Merkez Bankası kaynaklı günlük güncel döviz kurları."
+        }
+      },
+      {
+        id: "coingecko",
+        name: "CoinGecko Simple Price",
+        category: "finance",
+        url: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd,try",
+        docs: "https://docs.coingecko.com/",
+        desc: {
+          en: "Real-time cryptocurrency spot prices in USD and TRY.",
+          tr: "USD ve TRY bazında anlık kripto para piyasa fiyatları."
+        }
+      },
+      {
+        id: "github-repo",
+        name: "GitHub Repository Stats",
+        category: "dev",
+        url: "https://api.github.com/repos/public-apis/public-apis",
+        docs: "https://docs.github.com/en/rest",
+        desc: {
+          en: "Fetch live stars, forks, open issues, and metadata for any public GitHub repo.",
+          tr: "Herkese açık herhangi bir GitHub deposunun yıldız, fork ve issue verilerini çeker."
+        }
+      },
+      {
+        id: "jsonplaceholder",
+        name: "JSONPlaceholder Posts",
+        category: "dev",
+        url: "https://jsonplaceholder.typicode.com/posts?_limit=5",
+        docs: "https://jsonplaceholder.typicode.com/",
+        desc: {
+          en: "Fake REST API for testing frontend prototypes and pagination.",
+          tr: "Arayüz prototiplerini test etmek için sahte REST API verileri."
+        }
+      },
+      {
+        id: "dummyjson",
+        name: "DummyJSON Products",
+        category: "dev",
+        url: "https://dummyjson.com/products?limit=4",
+        docs: "https://dummyjson.com/docs",
+        desc: {
+          en: "E-commerce product catalog mock data with prices, ratings, and thumbnails.",
+          tr: "Fiyat, puan ve ürün görselleri içeren e-ticaret örnek ürün kataloğu."
+        }
+      },
+      {
+        id: "ipify",
+        name: "ipify Public IP",
+        category: "dev",
+        url: "https://api.ipify.org?format=json",
+        docs: "https://www.ipify.org/",
+        desc: {
+          en: "Instant JSON lookup returning your current public IPv4 address.",
+          tr: "Mevcut genel IPv4 adresinizi anında JSON formatında döndürür."
+        }
+      },
+      {
+        id: "rest-countries",
+        name: "REST Countries",
+        category: "geo",
+        url: "https://restcountries.com/v3.1/name/turkey?fields=name,capital,population,currencies,flags",
+        docs: "https://restcountries.com/",
+        desc: {
+          en: "Detailed country demographics, capitals, currencies, and flag assets.",
+          tr: "Ülke nüfusu, başkent, para birimi ve bayrak bilgilerini sunar."
+        }
+      },
+      {
+        id: "spaceflight",
+        name: "Spaceflight News",
+        category: "geo",
+        url: "https://api.spaceflightnewsapi.net/v4/articles/?limit=3",
+        docs: "https://api.spaceflightnewsapi.net/v4/docs/",
+        desc: {
+          en: "Latest space exploration and rocket launch news articles.",
+          tr: "En güncel uzay araştırmaları ve roket fırlatma haberleri."
+        }
+      },
+      {
+        id: "sunrise-sunset",
+        name: "Sunrise & Sunset Times",
+        category: "geo",
+        url: "https://api.sunrise-sunset.org/json?lat=41.0082&lng=28.9784&formatted=0",
+        docs: "https://sunrise-sunset.org/api",
+        desc: {
+          en: "Astronomical sunrise, sunset, and day length data for any coordinates.",
+          tr: "Girilen koordinat için gün doğumu, gün batımı ve gün uzunluğu verileri."
+        }
+      },
+      {
+        id: "dog-ceo",
+        name: "Dog CEO Random Image",
+        category: "fun",
+        url: "https://dog.ceo/api/breeds/image/random",
+        docs: "https://dog.ceo/dog-api/",
+        desc: {
+          en: "Returns a random dog breed image URL with instant media preview.",
+          tr: "Anında görsel önizlemeli rastgele köpek fotoğrafı URL'si döndürür."
+        }
+      },
+      {
+        id: "pokeapi",
+        name: "PokéAPI Sprite & Stats",
+        category: "fun",
+        url: "https://pokeapi.co/api/v2/pokemon/pikachu",
+        docs: "https://pokeapi.co/docs/v2",
+        desc: {
+          en: "Comprehensive Pokémon stats, abilities, types, and official sprite URLs.",
+          tr: "Pokémon istatistikleri, yetenekleri ve resmi görsel bağlantıları."
+        }
+      },
+      {
+        id: "open-library",
+        name: "Open Library Search",
+        category: "fun",
+        url: "https://openlibrary.org/search.json?q=clean+code&limit=3",
+        docs: "https://openlibrary.org/developers/api",
+        desc: {
+          en: "Search millions of book titles, authors, and publication years.",
+          tr: "Milyonlarca kitap başlığı, yazar ve basım yılı arasında arama yapın."
+        }
+      },
+      {
+        id: "advice-slip",
+        name: "Advice Slip JSON",
+        category: "fun",
+        url: "https://api.adviceslip.com/advice",
+        docs: "https://api.adviceslip.com/",
+        desc: {
+          en: "Lightweight endpoint delivering random life and productivity advice.",
+          tr: "Rastgele tavsiye cümleleri sunan hafif ve hızlı JSON uç noktası."
+        }
+      }
+    ];
+
+    let lang = localStorage.getItem("apiscout_lang_v1") || "en";
+    let favorites = JSON.parse(localStorage.getItem("apiscout_favs_v1") || "[]");
+    let customApis = JSON.parse(localStorage.getItem("apiscout_custom_v1") || "[]");
+    let activeCategory = "all";
+    let onlyFavorites = false;
+    let selectedApiId = DEFAULT_APIS[0].id;
+    let codeMode = "fetch";
+    let lastRawResponse = null;
+
+    function allApis() {
+      return [...customApis, ...DEFAULT_APIS];
+    }
+
+    function setLanguage(newLang) {
+      lang = newLang;
+      localStorage.setItem("apiscout_lang_v1", lang);
+      document.documentElement.lang = lang;
+      document.getElementById("langEnBtn").classList.toggle("active", lang === "en");
+      document.getElementById("langTrBtn").classList.toggle("active", lang === "tr");
+
+      const dict = I18N[lang];
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (dict[key]) el.textContent = dict[key];
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+        const key = el.getAttribute("data-i18n-placeholder");
+        if (dict[key]) el.placeholder = dict[key];
+      });
+
+      document.getElementById("metricAuth").textContent = dict.noKey;
+      if (!lastRawResponse) {
+        document.getElementById("responseOutput").textContent = dict.readyPrompt;
+      }
+
+      renderCategories();
+      renderCatalog();
+      const current = allApis().find(a => a.id === selectedApiId);
+      if (current) {
+        document.getElementById("activeDesc").textContent = current.desc[lang] || current.desc.en;
+      }
+    }
+
+    function renderCategories() {
+      const bar = document.getElementById("categoryBar");
+      const cats = I18N[lang].categories;
+      bar.innerHTML = Object.entries(cats)
+        .map(([key, label]) => `
+          <button class="cat-pill ${activeCategory === key ? "active" : ""}" onclick="selectCategory('${key}')">
+            ${label}
+          </button>
+        `)
+        .join("");
+    }
+
+    function selectCategory(cat) {
+      activeCategory = cat;
+      renderCategories();
+      renderCatalog();
+    }
+
+    function toggleFavFilter() {
+      onlyFavorites = !onlyFavorites;
+      document.getElementById("favFilterBtn").style.borderColor = onlyFavorites ? "var(--amber)" : "var(--border)";
+      renderCatalog();
+    }
+
+    function toggleFavorite(e, id) {
+      e.stopPropagation();
+      if (favorites.includes(id)) {
+        favorites = favorites.filter(f => f !== id);
+      } else {
+        favorites.push(id);
+      }
+      localStorage.setItem("apiscout_favs_v1", JSON.stringify(favorites));
+      updateFavCount();
+      renderCatalog();
+    }
+
+    function updateFavCount() {
+      document.getElementById("favCount").textContent = favorites.length;
+    }
+
+    function renderCatalog() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      const listEl = document.getElementById("catalogList");
+      const dict = I18N[lang];
+
+      const filtered = allApis().filter(api => {
+        if (onlyFavorites && !favorites.includes(api.id)) return false;
+        if (activeCategory !== "all" && api.category !== activeCategory) return false;
+        if (!query) return true;
+        const descText = (api.desc[lang] || api.desc.en || "").toLowerCase();
+        return (
+          api.name.toLowerCase().includes(query) ||
+          api.url.toLowerCase().includes(query) ||
+          descText.includes(query)
+        );
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem; padding: 16px;">${dict.emptyCatalog}</div>`;
+        return;
+      }
+
+      listEl.innerHTML = filtered
+        .map(api => {
+          const isFav = favorites.includes(api.id);
+          const isSelected = api.id === selectedApiId;
+          const catLabel = dict.categories[api.category] || api.category;
+          const descText = api.desc[lang] || api.desc.en;
+          return `
+            <div class="api-card ${isSelected ? "selected" : ""}" onclick="selectApi('${api.id}')">
+              <div class="api-card-top">
+                <div class="api-title">${api.name}</div>
+                <button class="fav-btn ${isFav ? "active" : ""}" onclick="toggleFavorite(event, '${api.id}')" title="Favorite">★</button>
+              </div>
+              <div class="api-desc">${descText}</div>
+              <div class="api-badges">
+                <span class="badge">${catLabel}</span>
+                <span class="badge auth">${dict.noKey}</span>
+                <span class="badge cors">${dict.corsYes}</span>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function selectApi(id) {
+      const api = allApis().find(a => a.id === id);
+      if (!api) return;
+      selectedApiId = id;
+      lastRawResponse = null;
+
+      document.getElementById("activeTitle").textContent = api.name;
+      document.getElementById("activeDesc").textContent = api.desc[lang] || api.desc.en;
+      document.getElementById("endpointInput").value = api.url;
+      document.getElementById("docsLink").href = api.docs || api.url;
+      document.getElementById("responseOutput").textContent = I18N[lang].readyPrompt;
+      document.getElementById("imagePreview").style.display = "none";
+      document.getElementById("metricStatus").textContent = "—";
+      document.getElementById("metricStatus").className = "";
+      document.getElementById("metricLatency").textContent = "—";
+      document.getElementById("metricSize").textContent = "—";
+
+      updateCodeSnippets();
+      renderCatalog();
+    }
+
+    function switchCodeTab(mode) {
+      codeMode = mode;
+      document.getElementById("tabFetch").classList.toggle("active", mode === "fetch");
+      document.getElementById("tabCurl").classList.toggle("active", mode === "curl");
+      updateCodeSnippets();
+    }
+
+    function updateCodeSnippets() {
+      const url = document.getElementById("endpointInput").value.trim();
+      const out = document.getElementById("codeOutput");
+      if (codeMode === "fetch") {
+        out.textContent = `const response = await fetch("${url}");\nif (!response.ok) throw new Error(\`HTTP \${response.status}\`);\nconst data = await response.json();\nconsole.log(data);`;
+      } else {
+        out.textContent = `curl -X GET "${url}" \\\n  -H "Accept: application/json"`;
+      }
+    }
+
+    function findImageUrl(obj) {
+      if (!obj || typeof obj !== "object") return null;
+      for (const val of Object.values(obj)) {
+        if (typeof val === "string" && /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(val)) {
+          return val;
+        }
+        if (typeof val === "object") {
+          const nested = findImageUrl(val);
+          if (nested) return nested;
+        }
+      }
+      return null;
+    }
+
+    async function sendRequest() {
+      const url = document.getElementById("endpointInput").value.trim();
+      if (!url) return;
+
+      const btn = document.getElementById("sendBtn");
+      const statusEl = document.getElementById("metricStatus");
+      const latencyEl = document.getElementById("metricLatency");
+      const sizeEl = document.getElementById("metricSize");
+      const outputEl = document.getElementById("responseOutput");
+      const imgBox = document.getElementById("imagePreview");
+      const imgEl = document.getElementById("previewImg");
+
+      btn.disabled = true;
+      btn.textContent = I18N[lang].sending;
+      imgBox.style.display = "none";
+
+      const start = performance.now();
+      try {
+        const res = await fetch(url);
+        const elapsed = Math.round(performance.now() - start);
+        const rawText = await res.text();
+        const bytes = new Blob([rawText]).size;
+
+        statusEl.textContent = `${res.status} ${res.statusText || "OK"}`;
+        statusEl.className = res.ok ? "status-ok" : "status-err";
+        latencyEl.textContent = `${elapsed} ms`;
+        sizeEl.textContent = bytes > 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes} B`;
+
+        try {
+          const parsed = JSON.parse(rawText);
+          lastRawResponse = parsed;
+          outputEl.textContent = JSON.stringify(parsed, null, 2);
+
+          const mediaUrl = findImageUrl(parsed);
+          if (mediaUrl) {
+            imgEl.src = mediaUrl;
+            imgBox.style.display = "flex";
+          }
+        } catch {
+          lastRawResponse = null;
+          outputEl.textContent = rawText;
+        }
+      } catch (err) {
+        const elapsed = Math.round(performance.now() - start);
+        statusEl.textContent = "CORS / Network Error";
+        statusEl.className = "status-err";
+        latencyEl.textContent = `${elapsed} ms`;
+        sizeEl.textContent = "0 B";
+        outputEl.textContent = JSON.stringify(
+          {
+            error: err.message,
+            hint:
+              lang === "tr"
+                ? "Bu uç nokta tarayıcı CORS politikasını engelliyor olabilir veya URL hatalı."
+                : "This endpoint may block browser CORS requests or the URL is unreachable."
+          },
+          null,
+          2
+        );
+      } finally {
+        btn.disabled = false;
+        btn.textContent = I18N[lang].sendRequest;
+      }
+    }
+
+    function formatJson() {
+      if (lastRawResponse) {
+        document.getElementById("responseOutput").textContent = JSON.stringify(lastRawResponse, null, 2);
+      }
+    }
+
+    function copyText(elementId) {
+      const text = document.getElementById(elementId).textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(I18N[lang].copiedToast);
+      });
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2200);
+    }
+
+    function openModal() {
+      document.getElementById("customModal").classList.add("open");
+    }
+
+    function closeModal() {
+      document.getElementById("customModal").classList.remove("open");
+    }
+
+    function saveCustomApi() {
+      const name = document.getElementById("customName").value.trim();
+      const category = document.getElementById("customCategory").value;
+      const url = document.getElementById("customUrl").value.trim();
+      const desc = document.getElementById("customDesc").value.trim() || "Custom GET endpoint.";
+
+      if (!name || !url.startsWith("http")) {
+        showToast(I18N[lang].invalidForm);
+        return;
+      }
+
+      const newApi = {
+        id: "custom-" + Date.now(),
+        name,
+        category,
+        url,
+        docs: url,
+        desc: { en: desc, tr: desc }
+      };
+
+      customApis.unshift(newApi);
+      localStorage.setItem("apiscout_custom_v1", JSON.stringify(customApis));
+
+      document.getElementById("customName").value = "";
+      document.getElementById("customUrl").value = "";
+      document.getElementById("customDesc").value = "";
+      closeModal();
+      selectApi(newApi.id);
+      showToast(I18N[lang].savedToast);
+    }
+
+    // Boot
+    updateFavCount();
+    setLanguage(lang);
+    selectApi(DEFAULT_APIS[0].id);
+  </script>
+</body>
+</html>
